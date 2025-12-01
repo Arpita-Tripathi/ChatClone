@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat UI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="chat-container">
+        <h2>WhatsApp-like Chat</h2>
+
+        <textarea id="chatInput" placeholder="Paste exported WhatsApp chat here"></textarea>
+
+        <button onclick="processChat()">Process Chat</button>
+
+        <div id="chatBox"></div>
+    </div>
+
+    <script>
+        async function processChat() {
+            const rawChat = document.getElementById("chatInput").value;
+
+            // 1. Clean using Python API
+            const cleanedRes = await fetch("http://localhost:5000/clean", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ chat: rawChat })
+            });
+
+            const cleaned = await cleanedRes.json();
+
+            // 2. Send clean chat to your JS model API
+            const modelRes = await fetch("http://localhost:3000/sendToModel", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ text: cleaned.cleaned_chat })
+            });
+
+            const response = await modelRes.json();
+
+            // 3. Display as chat bubbles
+            const box = document.getElementById("chatBox");
+            box.innerHTML = "";
+
+            cleaned.cleaned_chat.split("\n").forEach(msg => {
+                box.innerHTML += `<div class="bubble">${msg}</div>`;
+            });
+
+            box.innerHTML += `<div class="aiBubble">AI: ${response.answer || JSON.stringify(response)}</div>`;
+        }
+    </script>
+</body>
+</html>
